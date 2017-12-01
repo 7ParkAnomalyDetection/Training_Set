@@ -254,7 +254,8 @@ def daily_total(df):
     return count[["Date", "Ratio_1", "Ratio_2"]]
   
   
-    
+#######################################################################################################################################
+
 ### Function code for group up all the entries in the same day and same <keyword> (which you type in) in a dataframe
 ### You input the keyword for summation and the type of visitors (total or unique). 
 
@@ -310,6 +311,12 @@ def get_tot_uniq_rat_col (df, keyword):
     df_conca['TotUni_Ratio'] = df_conca.VisTot_Count / df_conca.VisUni_Count
     
     return df_conca      
+    
+    NOTE:
+    This part not in use currently, temp keep it in case of any refer
+##################################################################################################################################
+
+
 
 
 
@@ -374,7 +381,11 @@ def grouped_by_sub_dataframe (df, keyword): #keyword: "Country", "Site", or "Con
     
     df_grouped = df_grouped.drop(['VisTot_Count', 'VisUni_Count', 'Sample'], axis = 1)
     
+    df_grouped.to_csv(r'C:\Users\Raphael\Desktop\Columbia\7Park_Data\Projects\Formal\datasets\combined_csv\df_grouped.csv', encoding = 'utf-8')
+    
     return df_grouped
+    
+
 
 #####CREATE MEASURE DF#####
 #sub_df: aggregated data frame
