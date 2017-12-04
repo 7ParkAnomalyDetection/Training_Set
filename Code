@@ -210,119 +210,36 @@ countries = [
 {'timezones': ['Europe/London'], 'code': 'GB', 'continent': 'Europe', 'name': 'United Kingdom', 'capital': 'London'},
 ]
 
-
-
-#THE ENTIRE DATA SET
-types = {"Date":'category',
-        "Site":'category',
-        "URL":'category', 
-        "Country":'category', 
-        "Platform":'category', 
-        "Type":'category',
-        "Count":'float32', 
-        "Sample":'float32'}
-
-os.chdir(r'C:\tsv combined')
-df = pd.read_csv('data.tsv',
-            sep='\t',
-            dtype = types,
-            usecols = ["Date", "Site", "Country", "Platform", "Type", "Count", "Sample"])
-    
-
 def daily_total(df):
     temp = df[(df["Platform"]=="PC") & (df["Type"]=="visitors-total")]
-
-    temp_sample = temp.groupby(["Date","Country"])["Sample"].mean() #sample for a country for a day are the same, so mean just takes that value
+    temp2 = df[(df["Platform"]=="PC") & (df["Type"]=="visitors-unique")]
+    
+    #groupby 
+    temp_sample = temp.groupby(["Date","Country"])["Sample"].mean() #sample for a country for a day are the same, so mean will take that value
     temp_sample = temp_sample.reset_index() #turn into data frame so can do one more groupby
     temp_sample = temp_sample.groupby(["Date"])["Sample"].sum() #sum sample of all countries for a day
 
-    temp_count = temp.groupby(["Date"])["Count"].sum() #sum all count for a day
+    temp_tot = temp.groupby(["Date"])["Count"].sum() #sum all totals for a day
     
+    temp_uni = temp2.groupby(["Date"])["Count"].sum() #sum all uniques
+    
+    #reset index to make proper df
     sample = temp_sample.reset_index()
-    count = temp_count.reset_index()
+    tot = temp_tot.reset_index()
+    uni = temp_uni.reset_index()
     
-    count["Sample"] = sample["Sample"] #add Sample col
-    count["Ratio_1"] = count["Count"]/count["Sample"] #add new col Ratio_1 which is totalcount/totalsample
+    #add sample and unique as new columns to tot
+    tot["Sample"] = sample["Sample"]
+    tot["Uni"] = uni["Count"]
     
-    temp2 = df[(df["Platform"]=="PC") & (df["Type"]=="visitors-unique")]
-    temp_unique = temp2.groupby(["Date"])["Count"].sum()
-    unique = temp_unique.reset_index()
-
+    #add ratios
+    tot["Ratio_1"] = tot["Count"]/tot["Sample"]
+    tot["Ratio_2"] = tot["Uni"]/tot["Sample"]
+    tot["Ratio_3"] = tot["Count"]/tot["Uni"]
     
-    count["Ratio_2"] = count["Count"]/unique["Count"] #add new col Ratio_2 which is totalcount/totalunique
-    
-    return count[["Date", "Ratio_1", "Ratio_2"]]
+    return tot[["Date", "Ratio_1", "Ratio_2", "Ratio_3"]]
   
-  
-#######################################################################################################################################
-
-### Function code for group up all the entries in the same day and same <keyword> (which you type in) in a dataframe
-### You input the keyword for summation and the type of visitors (total or unique). 
-
-def grouped_by_sub_dataframe (df, keyword, visitors_type):
-
-    keyword = input("Please enter the keyword that you want to sum up with (e.g. Country, Site):"）
     
-    visitors_type = input("Please choose between: 1.visitors-total 2.visitors-unique: (1/2)")
-    while visitors_type != 1 and visitors_type != 2:    
-        if visitors_type == '1':
-            visitors_type = 'visitors-total'
-        elif visitors_type == '2':
-            visitors_type = 'visitors=unique'
-        else:
-            visitors_type = input("Please choose between: 1.visitors-total 2.visitors-unique: (1/2)")
-        
-    
-    df1 = df[(df.Platform == 'PC') & (df.Type == visitors_type)] 
-    #only choose the data that: 1. Platform is PC; 2. Given visitors type.
-    
-    df1_1 = df1.groupby(["Date", keyword])["Count"].sum()    #sum up all counts on given day, grouped by 'keyword'.
-    df1_2 = df1.groupby(["Date", keyword])["Sample_size"].mean()    #keeep sample size (sample size do not need summation).
-    
-    df1_1 = DataFrame(df1_1).reset_index()
-    df1_2 = DataFrame(df1_2).reset_index()
-    
-    df_grouped_keyword = concat([df1_1, df1_2[['Sample_size']]], axis = 1)
-    
-    df_grouped_keyword['Ratio'] = df_grouped_keyword['Count'] / df_grouped_keyword['Sample_size']
-    # Add a column of ratio for grouped dataframe
-    
-    df_grouped_keyword.to_csv(r'\datasets\combined_csv\df_grouped_keyword.csv')  
-
-
-### Function code for add a column of [ count of visitors-total / count of visitors-unique ]
-### Input the dataframe and the keyword ("Country"/"Site", the thing that want to groupup), return the dataframe with:
-### 1. count of visitors-total  2. count of visitors-unique  3. ratio of these two quantities.
-
-def get_tot_uniq_rat_col (df, keyword):
-    df1 = df[(df.Platform == 'PC') & (df.Type == 'visitors-total')] 
-    df2 = df[(df.Platform == 'PC') & (df.Type == 'visitors-unique')] 
-    
-    df1_1 = df1.groupby(["Date", keyword])["Count"].sum() 
-    df2_1 = df2.groupby(["Date", keyword])["Count"].sum() 
-    
-    df1_1 = DataFrame(df1_1).reset_index()
-    df2_1 = DataFrame(df2_1).reset_index()
-    
-    df1_1 = df1_1.rename(columns={'Count': 'VisTot_Count'})
-    df2_1 = df2_1.rename(columns={'Count': 'VisUni_Count'})
-    
-    df_conca = pd.concat([df1_1, df2_1.VisUni_Count], axis=1)
-    df_conca['TotUni_Ratio'] = df_conca.VisTot_Count / df_conca.VisUni_Count
-    
-    return df_conca      
-    
-    NOTE:
-    This part not in use currently, temp keep it in case of any refer
-##################################################################################################################################
-
-
-
-
-
-#########  Latest 12 ##############
-
-
 ### Function code for lookup continent, given a country's code. 
 ### (already has a list of dictionaries "countries" that contains information of mapping country code to continent)
 
@@ -348,8 +265,32 @@ def add_continent (df):
     df_add_conti = concat([df, df_conti], axis = 1)
     return df_add_conti
 
+    
+### 1115 Update ###
+### Function code for add a column of [ count of visitors-total / count of visitors-unique ]
+### Input grouped by keyword (eg. "Country") dataframe, return the dataframe with:
+### 1. count of visitors-total  2. count of visitors-unique  3. ratio of these two quantities.
 
+def get_tot_uniq_rat_col (df, keyword):
+    df1 = df[(df.Platform == 'PC') & (df.Type == 'visitors-total')] 
+    df2 = df[(df.Platform == 'PC') & (df.Type == 'visitors-unique')] 
+    
+    df1_1 = df1.groupby(["Date", keyword])["Count"].sum() 
+    df2_1 = df2.groupby(["Date", keyword])["Count"].sum() 
+    
+    df1_1 = DataFrame(df1_1).reset_index()
+    df2_1 = DataFrame(df2_1).reset_index()
+    
+    df1_1 = df1_1.rename(columns={'Count': 'VisTot_Count'})
+    df2_1 = df2_1.rename(columns={'Count': 'VisUni_Count'})
+    
+    df_conca = pd.concat([df1_1, df2_1.VisUni_Count], axis=1)
+    df_conca['TotUni_Ratio'] = df_conca.VisTot_Count / df_conca.VisUni_Count
+    
+    return df_conca  
+  
 
+#########  Update 1116 ##############
 ### Function code for group up all the entries in the same day and same <keyword> (which you type in) in a dataframe
 ### You input the keyword for summation and the type of visitors (total or unique). 
 
@@ -376,16 +317,13 @@ def grouped_by_sub_dataframe (df, keyword): #keyword: "Country", "Site", or "Con
     df_grouped = pd.concat([df1_1, df2_1[['VisUni_Count']], df1_2[['Sample']]], axis = 1)
     
     df_grouped['Ratio_1'] = df_grouped['VisTot_Count'] / df_grouped['Sample']
-    df_grouped['Ratio_2'] = df_grouped['VisTot_Count'] / df_grouped['VisUni_Count']
+    df_grouped['Ratio_2'] = df_grouped['VisUni_Count'] / df_grouped['Sample']
+    df_grouped['Ratio_3'] = df_grouped['VisTot_Count'] / df_grouped['VisUni_Count']
     # Add columns of ratio1 and ratio2 for grouped dataframe
     
     df_grouped = df_grouped.drop(['VisTot_Count', 'VisUni_Count', 'Sample'], axis = 1)
     
-    df_grouped.to_csv(r'C:\Users\Raphael\Desktop\Columbia\7Park_Data\Projects\Formal\datasets\combined_csv\df_grouped.csv', encoding = 'utf-8')
-    
     return df_grouped
-    
-
 
 #####CREATE MEASURE DF#####
 #sub_df: aggregated data frame
@@ -393,36 +331,124 @@ def grouped_by_sub_dataframe (df, keyword): #keyword: "Country", "Site", or "Con
 #return: sub_df with 2 new columns of anomaly measures
 
 def tsa_measure(sub_df, sub_df_type):
+    from statsmodels.tsa.seasonal import seasonal_decompose
     pd.options.mode.chained_assignment = None
     if sub_df_type == "Date":
         copy = sub_df
         a = np.array(copy["Ratio_1"])
         b = np.array(copy["Ratio_2"])
-        model_a = sm.tsa.seasonal_decompose(a, model="additive", filt=None, freq=7, two_sided=False)
-        model_b = sm.tsa.seasonal_decompose(b, model="additive", filt=None, freq=7, two_sided=False)
+        c = np.array(copy["Ratio_3"])
+        model_a = seasonal_decompose(a, model="additive", filt=None, freq=7, two_sided=False)
+        model_b = seasonal_decompose(b, model="additive", filt=None, freq=7, two_sided=False)
+        model_c = seasonal_decompose(c, model="additive", filt=None, freq=7, two_sided=False)
         
         copy["norm_res_1"] = np.absolute(model_a.resid/np.nanstd(model_a.resid))
         copy["norm_res_2"] = np.absolute(model_b.resid/np.nanstd(model_b.resid))
+        copy["norm_res_3"] = np.absolute(model_c.resid/np.nanstd(model_c.resid))
         
-        return copy
+        return copy[["norm_res_1", "norm_res_2", "norm_res_3"]]
         
     else:
         copy = sub_df
+        req_len = len(list(set(sub_df["Date"]))) #total days
         unique = list(set(sub_df[sub_df_type])) #unique is list of unique countries/site/continent
         frames = [] #list which will be filled with subdata frames, will concat at end
 
         for name in unique: #iterate through unique
             copy_subset = copy[copy[sub_df_type] == name] #subset by name
+            
+            #If a site does not have info for any of the days, it will cause error with seasonal_decomp
+            #We shoudl omit anyway, because high variability
+            if len(copy_subset) < req_len:
+                continue
 
             a = np.array(copy_subset["Ratio_1"])
             b = np.array(copy_subset["Ratio_2"])
+            c = np.array(copy_subset["Ratio_3"])
 
-            model_a = sm.tsa.seasonal_decompose(a, model="additive", filt=None, freq=7, two_sided=False)
-            model_b = sm.tsa.seasonal_decompose(b, model="additive", filt=None, freq=7, two_sided=False)
+            model_a = seasonal_decompose(a, model="additive", filt=None, freq=7, two_sided=False)
+            model_b = seasonal_decompose(b, model="additive", filt=None, freq=7, two_sided=False)
+            model_c = seasonal_decompose(c, model="additive", filt=None, freq=7, two_sided=False)
 
             copy_subset["norm_res_1"] = np.absolute(model_a.resid/np.nanstd(model_a.resid))
             copy_subset["norm_res_2"] = np.absolute(model_b.resid/np.nanstd(model_b.resid))
+            copy_subset["norm_res_3"] = np.absolute(model_c.resid/np.nanstd(model_c.resid))
 
             frames += [copy_subset] 
 
         return(pd.concat(frames))
+        
+        
+        #Read in Data
+types = {"Date":'category',
+        "Site":'category',
+        "URL":'category', 
+        "Country":'category', 
+        "Platform":'category', 
+        "Type":'category',
+        "Count":'float32', 
+        "Sample":'float32'}
+
+os.chdir(r'C:\tsv combined')
+df = pd.read_csv('data.tsv',
+            sep='\t',
+            dtype = types,
+            usecols = ["Date", "Site", "Country", "Platform", "Type", "Count", "Sample"])
+
+df = df.dropna() #'2016-09-2' which is all Nan, it only appears once
+
+country = grouped_by_sub_dataframe(df, "Country").dropna()
+country_score = tsa_measure(country, "Country")
+
+my_bins = list(np.arange(0, 5.25, 0.25))
+
+f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+f.set_figheight(10)
+f.set_figwidth(10)
+plt.suptitle("By Country", fontsize=16)
+ax1.hist(country_score["norm_res_1"][~np.isnan(country_score["norm_res_1"])], bins = my_bins, normed = True) #ASK WHY DOESNT DENSITY WORK!!!!!
+ax1.set_title("Traffic")
+ax2.hist(country_score["norm_res_2"][~np.isnan(country_score["norm_res_2"])], bins = my_bins, normed = True)
+ax2.set_title("Unique Visitors")
+ax3.hist(country_score["norm_res_3"][~np.isnan(country_score["norm_res_3"])], bins = my_bins, normed = True)
+ax3.set_title("Traffic Per Visitor")
+plt.show()
+
+
+
+site = grouped_by_sub_dataframe(df, "Site").dropna()
+site_score = tsa_measure(site, "Site") #this line takes a while
+
+my_bins = list(np.arange(0, 5.25, 0.25))
+
+f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+f.set_figheight(10)
+f.set_figwidth(10)
+plt.suptitle("By Site", fontsize=16)
+ax1.hist(site_score["norm_res_1"][~np.isnan(site_score["norm_res_1"])], bins = my_bins, normed = True)
+ax1.set_title("Traffic")
+ax2.hist(site_score["norm_res_2"][~np.isnan(site_score["norm_res_2"])], bins = my_bins, normed = True)
+ax2.set_title("Unique Visitors")
+ax3.hist(site_score["norm_res_3"][~np.isnan(site_score["norm_res_3"])], bins = my_bins, normed = True)
+ax3.set_title("Traffic Per Visitor")
+plt.show()
+
+
+
+
+date = daily_total(df).dropna() #even though drop NaN when loading in data, NaN still appears for '2016-09-2', so drop again
+date_score = tsa_measure(date, "Date")
+
+my_bins = list(np.arange(0, 5.25, 0.25))
+
+f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+f.set_figheight(10)
+f.set_figwidth(10)
+plt.suptitle("By Date", fontsize=16)
+ax1.hist(date_score["norm_res_1"][~np.isnan(date_score["norm_res_1"])], bins = my_bins, normed = True)
+ax1.set_title("Traffic")
+ax2.hist(date_score["norm_res_2"][~np.isnan(date_score["norm_res_2"])], bins = my_bins, normed = True)
+ax2.set_title("Unique Visitors")
+ax3.hist(date_score["norm_res_3"][~np.isnan(date_score["norm_res_3"])], bins = my_bins, normed = True)
+ax3.set_title("Traffic Per Visitor")
+plt.show()
