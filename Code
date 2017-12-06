@@ -210,14 +210,57 @@ countries = [
 {'timezones': ['Europe/London'], 'code': 'GB', 'continent': 'Europe', 'name': 'United Kingdom', 'capital': 'London'},
 ]
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def daily_total(df):
     temp = df[(df["Platform"]=="PC") & (df["Type"]=="visitors-total")]
     temp2 = df[(df["Platform"]=="PC") & (df["Type"]=="visitors-unique")]
     
     #groupby 
-    temp_sample = temp.groupby(["Date","Country"])["Sample"].mean() #sample for a country for a day are the same, so mean will take that value
-    temp_sample = temp_sample.reset_index() #turn into data frame so can do one more groupby
-    temp_sample = temp_sample.groupby(["Date"])["Sample"].sum() #sum sample of all countries for a day
+    temp_sample = temp.groupby(["Date","Country"])["Sample"].mean() 
+    #sample for a country for a day are the same, so mean will take that value
+    temp_sample = temp_sample.reset_index() 
+    #turn into data frame so can do one more groupby
+    temp_sample = temp_sample.groupby(["Date"])["Sample"].sum() 
+    #sum sample of all countries for a day
 
     temp_tot = temp.groupby(["Date"])["Count"].sum() #sum all totals for a day
     
@@ -406,7 +449,8 @@ f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
 f.set_figheight(10)
 f.set_figwidth(10)
 plt.suptitle("By Country", fontsize=16)
-ax1.hist(country_score["norm_res_1"][~np.isnan(country_score["norm_res_1"])], bins = my_bins, normed = True) #ASK WHY DOESNT DENSITY WORK!!!!!
+ax1.hist(country_score["norm_res_1"][~np.isnan(country_score["norm_res_1"])], bins = my_bins, normed = True) 
+#ASK WHY DOESNT DENSITY WORK!!!!!
 ax1.set_title("Traffic")
 ax2.hist(country_score["norm_res_2"][~np.isnan(country_score["norm_res_2"])], bins = my_bins, normed = True)
 ax2.set_title("Unique Visitors")
