@@ -376,7 +376,7 @@ def tsa_measure(sub_df, sub_df_type):
 
             frames += [copy_subset] 
 
-        return(pd.concat(frames).iloc[:,[0,1,5,6,7]])
+        return(pd.concat(frames)[["Date", sub_df_type, "norm_res_1", "norm_res_2", "norm_res_3"]])
         
         
         #Read in Data
