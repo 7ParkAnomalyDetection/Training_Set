@@ -334,7 +334,7 @@ def tsa_measure(sub_df, sub_df_type):
     from statsmodels.tsa.seasonal import seasonal_decompose
     pd.options.mode.chained_assignment = None
     if sub_df_type == "Date":
-        copy = sub_df
+        copy = sub_df.copy()
         a = np.array(copy["Ratio_1"])
         b = np.array(copy["Ratio_2"])
         c = np.array(copy["Ratio_3"])
@@ -346,10 +346,10 @@ def tsa_measure(sub_df, sub_df_type):
         copy["norm_res_2"] = np.absolute(model_b.resid/np.nanstd(model_b.resid))
         copy["norm_res_3"] = np.absolute(model_c.resid/np.nanstd(model_c.resid))
         
-        return copy[["norm_res_1", "norm_res_2", "norm_res_3"]]
+        return copy[["Date", "norm_res_1", "norm_res_2", "norm_res_3"]]
         
     else:
-        copy = sub_df
+        copy = sub_df.copy()
         req_len = len(list(set(sub_df["Date"]))) #total days
         unique = list(set(sub_df[sub_df_type])) #unique is list of unique countries/site/continent
         frames = [] #list which will be filled with subdata frames, will concat at end
@@ -376,7 +376,7 @@ def tsa_measure(sub_df, sub_df_type):
 
             frames += [copy_subset] 
 
-        return(pd.concat(frames))
+        return(pd.concat(frames).iloc[:,[0,1,5,6,7]])
         
         
         #Read in Data
@@ -452,3 +452,18 @@ ax2.set_title("Unique Visitors")
 ax3.hist(date_score["norm_res_3"][~np.isnan(date_score["norm_res_3"])], bins = my_bins, normed = True)
 ax3.set_title("Traffic Per Visitor")
 plt.show()
+
+
+
+
+
+#JOIN ALL RESULTS WITH DATA FRAME
+df = df[df["Platform"] == "PC"].iloc[:,[0,1,2,3,4]]
+
+date_score.columns = ["Date", "Date_1", "Date_2", "Date_3"]
+country_score.columns = ["Date", "Country", "Country_1", "Country_2", "Country_3"]
+site_score.columns = ["Date", "Site","Site_1", "Site_2", "Site_3"]
+
+df_scores = pd.merge(df, date_score, on="Date", how="left")
+df_scores = pd.merge(df_scores, country_score, on=["Date", "Country"], how="left")
+df_scores = pd.merge(df_scores, site_score, on=["Date", "Site"], how="left")
