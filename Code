@@ -533,5 +533,15 @@ df_combined = df.groupby(["Date", "Site", "Country","Platform", "Visitor_type", 
 df_combined = df_combined.reset_index()
 
 
+######################################################
+#Function to get the series of quantile numbers for each column
+#Pass in df_scores and quantile, return the series of quantile levels
+
+def quantile_levels( df_scores, quantile):
+    df_socres_only = df_scores.drop(['Date','Site','Country','Platform','Type'], axis = 1)
+    quan_level_series = df_scores_only.quantile(quantile)
+    return quan_level_series
+
+
 
 
