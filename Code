@@ -528,9 +528,9 @@ df = pd.read_csv('0000_part_00', names = ["Date", "Site", "URL", "Country","Plat
                     dtype = {"Date":'category', "Site":'category', "URL":'category', "Country":'category', 
                     "Platform":'category', "Click_type": 'category', "Visitor_type":'category', "Count":'float32',  "Sample":'float32'})
                     
-df_combine_URL = df.groupby(["Date", "Site", "Country","Platform", "Click_type", "Visitor_type", "Sample"])["Count"].sum()
+df_combined = df.groupby(["Date", "Site", "Country","Platform", "Visitor_type", "Sample"])["Count"].sum()
 
-df_combine_URL = df_combine_URL.reset_index()
+df_combined = df_combined.reset_index()
 
 
 
