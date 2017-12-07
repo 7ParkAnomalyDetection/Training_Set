@@ -511,3 +511,27 @@ site_score.columns = ["Date", "Site","Site_1", "Site_2", "Site_3"]
 df_scores = pd.merge(df, date_score, on="Date", how="left")
 df_scores = pd.merge(df_scores, country_score, on=["Date", "Country"], how="left")
 df_scores = pd.merge(df_scores, site_score, on=["Date", "Site"], how="left")
+
+
+
+
+
+
+
+
+
+###################################################################################################
+To load the new dataset we get from this Monday 1204
+And combine all the URL visits under the same website
+###################################################################################################
+df = pd.read_csv('0000_part_00', names = ["Date", "Site", "URL", "Country","Platform", "Click_type", "Visitor_type", "Count", "Sample"], sep = '/', 
+                    dtype = {"Date":'category', "Site":'category', "URL":'category', "Country":'category', 
+                    "Platform":'category', "Click_type": 'category', "Visitor_type":'category', "Count":'float32',  "Sample":'float32'})
+                    
+df_combine_URL = df.groupby(["Date", "Site", "Country","Platform", "Click_type", "Visitor_type", "Sample"])["Count"].sum()
+
+df_combine_URL = df_combine_URL.reset_index()
+
+
+
+
