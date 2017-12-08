@@ -544,4 +544,25 @@ def quantile_levels( df_scores, quantile):
 
 
 
+#############################################################################################
+#Function to get the scores table respectively for different click_type, and then recombine them to one DataFrame
+#Pass in the DataFrame (the original one we have directly from), and the Keyword (things like: "Site", "Country", or "Continent")
+#Return the combined score_table for the Keyword (like: site_score , country_score)
+
+def tsa_grades_sub_by_Click_type (df, Keyword):
+    df_Keyword_score = pd.DataFrame()
+    for i in df.Click_type.unique():
+        df_subset_click = df[(df.Click_type) == i ]
+        df_subset_click_by_Keyword = grouped_by_sub_dataframe (df_subset_click, Keyword)
+        df_Keyword_score_sig = tsa_measure( df_subset_click_by_Keyword , Keyword )
+        df_Keyword_score = concat([df_Keyword_score, df_Keyword_score_sig], axis = 0)
+    Keyword_score = df_Keyword_score
+    return Keyword_score
+   
+
+
+
+
+
+
 
