@@ -251,8 +251,8 @@ countries = [
 
 
 def daily_total(df):
-    temp = df[(df["Platform"]=="PC") & (df["Type"]=="visitors-total")]
-    temp2 = df[(df["Platform"]=="PC") & (df["Type"]=="visitors-unique")]
+    temp = df[(df["Platform"]=="PC") & (df["Visitors_type"]=="visitors-total")]
+    temp2 = df[(df["Platform"]=="PC") & (df["Visitors_type"]=="visitors-unique")]
     
     #groupby 
     temp_sample = temp.groupby(["Date","Country"])["Sample"].mean() 
@@ -315,8 +315,8 @@ def add_continent (df):
 ### 1. count of visitors-total  2. count of visitors-unique  3. ratio of these two quantities.
 
 def get_tot_uniq_rat_col (df, keyword):
-    df1 = df[(df.Platform == 'PC') & (df.Type == 'visitors-total')] 
-    df2 = df[(df.Platform == 'PC') & (df.Type == 'visitors-unique')] 
+    df1 = df[(df.Platform == 'PC') & (df.Visitors_type == 'visitors-total')] 
+    df2 = df[(df.Platform == 'PC') & (df.Visitors_type == 'visitors-unique')] 
     
     df1_1 = df1.groupby(["Date", keyword])["Count"].sum() 
     df2_1 = df2.groupby(["Date", keyword])["Count"].sum() 
@@ -339,8 +339,8 @@ def get_tot_uniq_rat_col (df, keyword):
 
 def grouped_by_sub_dataframe (df, keyword): #keyword: "Country", "Site", or "Continent"
    
-    df1 = df[(df.Platform == 'PC') & (df.Type == 'visitors-total')] 
-    df2 = df[(df.Platform == 'PC') & (df.Type == 'visitors-unique')]
+    df1 = df[(df.Platform == 'PC') & (df.Visitors_type == 'visitors-total')] 
+    df2 = df[(df.Platform == 'PC') & (df.Visitors_type == 'visitors-unique')]
     #only choose the data that: 1. Platform is PC; 2. Given visitors type.
     
     df1_1 = df1.groupby(["Date", keyword])["Count"].sum()    #sum up all vis-tot counts on given day, grouped by 'keyword'.
@@ -428,7 +428,7 @@ types = {"Date":'category',
         "URL":'category', 
         "Country":'category', 
         "Platform":'category', 
-        "Type":'category',
+        "Visitors_type":'category',
         "Count":'float32', 
         "Sample":'float32'}
 
@@ -436,7 +436,7 @@ os.chdir(r'C:\tsv combined')
 df = pd.read_csv('data.tsv',
             sep='\t',
             dtype = types,
-            usecols = ["Date", "Site", "Country", "Platform", "Type", "Count", "Sample"])
+            usecols = ["Date", "Site", "Country", "Platform", "Visitors_type", "Count", "Sample"])
 
 df = df.dropna() #'2016-09-2' which is all Nan, it only appears once
 
@@ -538,7 +538,7 @@ df_combined = df_combined.reset_index()
 #Pass in df_scores and quantile, return the series of quantile levels
 
 def quantile_levels( df_scores, quantile):
-    df_socres_only = df_scores.drop(['Date','Site','Country','Platform','Type'], axis = 1)
+    df_socres_only = df_scores.drop(['Date','Site','Country','Platform','Visitors_type'], axis = 1)
     quan_level_series = df_scores_only.quantile(quantile)
     return quan_level_series
 
@@ -546,6 +546,7 @@ def quantile_levels( df_scores, quantile):
 
 #############################################################################################
 #Function to get the scores table respectively for different click_type, and then recombine them to one DataFrame
+#Need to call groupby_sub and tsa_measure functions
 #Pass in the DataFrame (the original one we have directly from), and the Keyword (things like: "Site", "Country", or "Continent")
 #Return the combined score_table for the Keyword (like: site_score , country_score)
 
