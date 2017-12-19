@@ -19,6 +19,10 @@ from statsmodels.formula.api import ols
 import seaborn as sb
 
 
+
+
+
+
 # In[ ]:
 
 def group(df, keyword): #keyword: "Country", "Site"
@@ -52,6 +56,9 @@ def group(df, keyword): #keyword: "Country", "Site"
     return df_grouped
 
 
+
+
+
 # In[4]:
 
 path = r'C:\new_data'
@@ -78,6 +85,9 @@ df.columns = ["Date", "Site", "URL", "Country", "Platform", "Click_type", "Visit
 df_PC = df[df.Platform == 'PC'].drop('Platform', axis=1)
 
 
+
+
+
 # In[24]:
 
 df_count = (df_PC.groupby(["Date", "Site", "Click_type", "Visitor_type"])["Count"].sum()).reset_index() #aggregate Country 
@@ -86,6 +96,24 @@ df_sample = (df_PC.groupby(["Date", "Country"])["Sample"].mean()).reset_index() 
 df_sample = (df_sample.groupby(["Date"])["Sample"].sum()).reset_index() #sum over all Country to get daily Sample
 
 df_clean = pd.merge(df_count, df_sample, on="Date", how="left") 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # In[172]:
@@ -102,6 +130,9 @@ df_AJAX            = df_clean[df_clean["Click_type"]=="AJAX"]
 df_list = [df_TABCHANGE, df_REFRESH, df_REGULAR, df_SERVER_REDIRECT, df_EQUAL_REFERER, df_DYNAMIC_CHANGE, df_AJAX]
 
 
+
+
+
 # In[212]:
 
 df_list[0].head()
@@ -116,9 +147,40 @@ for df_i in df_list:
 
 
 
+
 # In[215]:
 
 by_date_list[0].head()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # In[163]:
@@ -164,6 +226,30 @@ def tsa_by_date(by_date_df):
     #return(return_df)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # In[167]:
 
 date_scores_list = []
@@ -174,13 +260,6 @@ for df_i in by_date_list:
     date_scores_list += [temp[0].dropna()]
     std_tot_list += [temp[1]]
     std_uni_list += [temp[2]]
-
-
-
-
-
-
-
 
 
 # In[178]:
@@ -235,6 +314,7 @@ def tsa_by_site(df_by_site):
 
     return_df = pd.concat(frames)
     return((return_df, my_dict))
+
 
 
 # In[182]:
