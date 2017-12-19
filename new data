@@ -114,6 +114,8 @@ for df_i in df_list:
     by_date_list += [(df_i.groupby(["Date", "Click_type","Visitor_type"]).agg({'Count':'sum', 'Sample':'mean'})).reset_index()]
 
 
+
+
 # In[215]:
 
 by_date_list[0].head()
@@ -172,6 +174,13 @@ for df_i in by_date_list:
     date_scores_list += [temp[0].dropna()]
     std_tot_list += [temp[1]]
     std_uni_list += [temp[2]]
+
+
+
+
+
+
+
 
 
 # In[178]:
@@ -237,6 +246,8 @@ for df_i in df_list:
     site_scores_list += [temp[0]]
     dict_list += [temp[1]]
     
+
+
 
 
 # In[188]:
