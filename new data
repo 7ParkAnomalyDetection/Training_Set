@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # In[1]:
@@ -17,10 +16,6 @@ import time
 import numpy as np
 from statsmodels.formula.api import ols
 import seaborn as sb
-
-
-
-
 
 
 # In[ ]:
@@ -54,9 +49,6 @@ def group(df, keyword): #keyword: "Country", "Site"
     df_grouped = df_grouped.drop(['VisTot_Count', 'VisUni_Count', 'Sample'], axis = 1)
     
     return df_grouped
-
-
-
 
 
 # In[4]:
@@ -101,21 +93,6 @@ df_clean = pd.merge(df_count, df_sample, on="Date", how="left")
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # In[172]:
 
 titles = ["TABCHANGE", "REFRESH", "REGULAR", "SERVER_REDIRECT", "EQUAL_REFERER", "DYNAMIC_CHANGE", "AJAX"]
@@ -133,9 +110,16 @@ df_list = [df_TABCHANGE, df_REFRESH, df_REGULAR, df_SERVER_REDIRECT, df_EQUAL_RE
 
 
 
+
+
+
+
+
+
 # In[212]:
 
 df_list[0].head()
+
 
 
 # In[214]:
@@ -147,38 +131,9 @@ for df_i in df_list:
 
 
 
-
 # In[215]:
 
 by_date_list[0].head()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -228,28 +183,6 @@ def tsa_by_date(by_date_df):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # In[167]:
 
 date_scores_list = []
@@ -262,6 +195,7 @@ for df_i in by_date_list:
     std_uni_list += [temp[2]]
 
 
+
 # In[178]:
 
 my_bins = list(np.arange(0, 5.5, 0.5))
@@ -271,6 +205,7 @@ for df_i in date_scores_list:
     plt.title("Dist of Res/Std_res: " + titles[i])
     i += 1
     plt.show()
+
 
 
 # In[180]:
@@ -329,7 +264,6 @@ for df_i in df_list:
 
 
 
-
 # In[188]:
 
 Site = []
@@ -346,15 +280,21 @@ for site in dict_list[0]:
     mean_tot.append(dict_list[0][site][3])
 
 
+
+
 # In[227]:
 
 temp = pd.DataFrame.from_dict(dict_list[0], orient='index')
 temp.columns = ["std_of_res_tot", "std_of_res_uni", "mean_ratio_tot", "mean_ratio_uni"]
 
 
+
+
 # In[230]:
 
 temp.head(7400)
+
+
 
 
 # In[219]:
