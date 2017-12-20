@@ -320,7 +320,7 @@ temp["recipro_sqrt_std_of_res_tot"] = 1/temp["std_of_res_tot"]
 temp["recipro_sqrt_std_of_res_uni"] = 1/temp["std_of_res_uni"]
 # Added two columns here, the reciprocals.
 
-plt.scatter(temp["mean_ratio_tot"], temp["rever_std_of_res_tot"], s = 2)
+plt.scatter(temp["mean_ratio_tot"], temp["recipro_std_of_res_tot"], s = 2)
 plt.ylim(ymin=0, ymax=25)                                                             
 plt.xlim(xmin=0, xmax=0.002)
 # Check the graph
@@ -328,7 +328,8 @@ plt.xlim(xmin=0, xmax=0.002)
 temp1 = temp.reset_index()
 temp1.rename(columns={'index': 'site'}, inplace=True)   # Move the index into the column "site", and reindex the df
 
-regress_tot = df[ (temp1["mean_ratio_tot"] < 0.1) | (temp1["std_of_res_tot"] < 2) ]
+### regress_tot = df[ (temp1["mean_ratio_tot"] < 0.1) | (temp1["std_of_res_tot"] < 2) ]
+regress_tot = temp1
 #regress_tot <- This DataFrame will be used for regression
 
 
@@ -351,7 +352,7 @@ lin_reg = linear_model.LinearRegression()
 lin_reg.fit(x_poly, regression_y)
 # find the most fitting polynomial regression line for y~poly(x)
 
-print('Coefficients (0, x^1, x^2, ...) :',lin_reg.coef_)
+print('Coefficients (0, x^1, x^2, ...) :', lin_reg.coef_)
 # print out the coefficients, from lowest power x^1 to highest power x^degree_of_polynomial
 
 print(lin_reg.intercept_)  
