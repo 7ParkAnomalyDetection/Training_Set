@@ -307,4 +307,60 @@ plt.xlim(xmax=0.5)
 # In[ ]:
 
 
+#################################### 1220 Update ###############################
+########## Follow the dataframe "temp" that is already generated #######################
+import matplotlib.pyplot as plt    
+import numpy as np    
+from sklearn import linear_model   
+from sklearn.preprocessing import PolynomialFeatures   
 
+
+
+temp["recipro_sqrt_std_of_res_tot"] = 1/temp["std_of_res_tot"]
+temp["recipro_sqrt_std_of_res_uni"] = 1/temp["std_of_res_uni"]
+# Added two columns here, the reciprocals.
+
+plt.scatter(temp["mean_ratio_tot"], temp["rever_std_of_res_tot"], s = 2)
+plt.ylim(ymin=0, ymax=25)                                                             
+plt.xlim(xmin=0, xmax=0.002)
+# Check the graph
+
+temp1 = temp.reset_index()
+temp1.rename(columns={'index': 'site'}, inplace=True)   # Move the index into the column "site", and reindex the df
+
+regress_tot = df[ (temp1["mean_ratio_tot"] < 0.1) | (temp1["std_of_res_tot"] < 2) ]
+#regress_tot <- This DataFrame will be used for regression
+
+
+regression_x = np.array(regress_tot["mean_ratio_tot"]).reshape([len(regress_tot["mean_ratio_tot"]), 1])  #convert to array for X
+regression_y = np.array(regress_tot["recipro_std_of_res_tot"])                       #convert to array for Y
+
+min_x = min(regression_x) 
+max_x = max(regression_x)
+plot_x = np.arange(min_x, max_x).reshape([-1, 1])     #plot_x a is used for plot the regression line later
+
+poly_reg = PolynomialFeatures(degree=2)   
+# generate polynomial, degree represent the max power (2: square), can make change to degree
+
+x_poly = poly_reg.fit_transform(regression_x)
+# apply the polynomial to independent variable x, make it ready for regression
+
+lin_reg = linear_model.LinearRegression()
+#creat the linear model
+
+lin_reg.fit(x_poly, regression_y)
+# find the most fitting polynomial regression line for y~poly(x)
+
+print('Coefficients (0, x^1, x^2, ...) :',lin_reg.coef_)
+# print out the coefficients, from lowest power x^1 to highest power x^degree_of_polynomial
+
+print(lin_reg.intercept_)  
+# print out the value of intercept
+
+plt.scatter(regression_x, regression_y, s=2)   
+plt.plot(plot_x, lin_reg.predict(poly_reg.fit_transform(X)), color='orange')   
+# plt.ylim(ymin=0, ymax=25)                                                              
+# plt.xlim(xmin=0, xmax=max_x)
+plt.show()   
+
+#Plot the graph to see the fitting result
