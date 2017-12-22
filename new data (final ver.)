@@ -172,6 +172,7 @@ variance_cutoff = 0.2 #cutoff for normalized standard deviations (measure of siz
 
 temp["Variance_flag"] = "Good"
 temp["Variance_flag"][temp["std_of_res_tot"]>variance_cutoff] = "High_variance"
+#classify out the high variance entries
 
 #NOTE: We use all data points, including High_variance points to create model.
 x = np.array(temp["mean_ratio_tot"])
