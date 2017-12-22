@@ -290,6 +290,7 @@ df_SERVER_REDIRECT = df_clean[df_clean["Click_type"]=="SERVER_REDIRECT"]
 df_EQUAL_REFERER   = df_clean[df_clean["Click_type"]=="EQUAL_REFERER"]
 df_DYNAMIC_CHANGE  = df_clean[df_clean["Click_type"]=="DYNAMIC_CHANGE"]
 df_AJAX            = df_clean[df_clean["Click_type"]=="AJAX"]
+#subsets accord to the click types
 
 df_list = [df_TABCHANGE, df_REFRESH, df_REGULAR, df_SERVER_REDIRECT, df_EQUAL_REFERER, df_DYNAMIC_CHANGE, df_AJAX]
 
