@@ -310,6 +310,13 @@ for df_i in by_date_list:
     std_uni_list += [temp[2]]
 
 
+
+
+
+
+
+
+
 # In[15]:
 
 #Group by date and site for each clicktype
