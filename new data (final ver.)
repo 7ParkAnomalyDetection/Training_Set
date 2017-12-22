@@ -305,6 +305,7 @@ for i in range(6):
 
 combined_site_table = DataFrame()
 
+#Recombine entries of all click types together
 combined_site_table = pd.DataFrame()
 for i in range(7):
     combined_site_table = concat([combined_site_table, site_table[i]], axis=0 )
