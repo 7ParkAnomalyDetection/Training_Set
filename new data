@@ -1,12 +1,14 @@
+
 # coding: utf-8
 
-# In[1]:
+# In[166]:
 
 get_ipython().magic('matplotlib inline')
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.style.use('ggplot')
 import statsmodels as sm
+from scipy.spatial.distance import cdist
 import pandas as pd
 from pandas import concat
 from datetime import datetime
@@ -18,127 +20,7 @@ from statsmodels.formula.api import ols
 import seaborn as sb
 
 
-# In[ ]:
-
-def group(df, keyword): #keyword: "Country", "Site"
-   
-    df1 = df[df.Type == 'visitors-total'] 
-    df2 = df[df.Type == 'visitors-unique']
-    #only choose the data that: 1. Platform is PC; 2. Given visitors type.
-    
-    df1_1 = df1.groupby(["Date", keyword])["Count"].sum()    #sum up all vis-tot counts on given day, grouped by 'keyword'.
-    
-    df2_1 = df2.groupby(["Date", keyword])["Count"].sum()    #sum up all vis-uni counts on given day, grouped by 'keyword'.
-    
-    df1_2 = df1.groupby(["Date", keyword])["Sample"].mean()    #keeep sample size (sample size do not need summation).
-    
-    #convert them to DataFrame format
-    df1_1 = pd.DataFrame(df1_1).reset_index()
-    df2_1 = pd.DataFrame(df2_1).reset_index()
-    df1_2 = pd.DataFrame(df1_2).reset_index()
-    
-    df1_1 = df1_1.rename(columns={'Count': 'VisTot_Count'})
-    df2_1 = df2_1.rename(columns={'Count': 'VisUni_Count'})
-    
-    df_grouped = pd.concat([df1_1, df2_1[['VisUni_Count']], df1_2[['Sample']]], axis = 1)
-    
-    df_grouped['Ratio_1'] = df_grouped['VisTot_Count'] / df_grouped['Sample']
-    df_grouped['Ratio_2'] = df_grouped['VisUni_Count'] / df_grouped['Sample']
-    # Add columns of ratio1 and ratio2 for grouped dataframe
-    
-    df_grouped = df_grouped.drop(['VisTot_Count', 'VisUni_Count', 'Sample'], axis = 1)
-    
-    return df_grouped
-
-
-# In[4]:
-
-path = r'C:\new_data'
-
-all_files = glob.glob(os.path.join(path, "*"))
-
-types = {"Date":'category',
-        "Site":'category',
-        "URL":'category', 
-        "Country":'category', 
-        "Platform":'category',
-        "Click_type": 'category',
-        "Type":'category',
-        "Count":'float32', 
-        "Sample":'float32'}
-
-df = pd.concat([pd.read_csv(f,
-                            sep='/',
-                            names = ["Date", "Site", "URL", "Country", "Platform", "Click_type", "Visitor_type", "Count", "Sample"],
-                            dtype = types) for f in all_files], 
-                            ignore_index=True)
-
-df.columns = ["Date", "Site", "URL", "Country", "Platform", "Click_type", "Visitor_type", "Count", "Sample"]
-df_PC = df[df.Platform == 'PC'].drop('Platform', axis=1)
-
-
-
-
-
-# In[24]:
-
-df_count = (df_PC.groupby(["Date", "Site", "Click_type", "Visitor_type"])["Count"].sum()).reset_index() #aggregate Country 
-
-df_sample = (df_PC.groupby(["Date", "Country"])["Sample"].mean()).reset_index() #groupby Date and Country using mean because given country and date, Sample values are same
-df_sample = (df_sample.groupby(["Date"])["Sample"].sum()).reset_index() #sum over all Country to get daily Sample
-
-df_clean = pd.merge(df_count, df_sample, on="Date", how="left") 
-
-
-
-
-
-# In[172]:
-
-titles = ["TABCHANGE", "REFRESH", "REGULAR", "SERVER_REDIRECT", "EQUAL_REFERER", "DYNAMIC_CHANGE", "AJAX"]
-df_TABCHANGE       = df_clean[df_clean["Click_type"]=="TABCHANGE"]
-df_REFRESH         = df_clean[df_clean["Click_type"]=="REFRESH"]
-df_REGULAR         = df_clean[df_clean["Click_type"]=="REGULAR"]
-df_SERVER_REDIRECT = df_clean[df_clean["Click_type"]=="SERVER_REDIRECT"]
-df_EQUAL_REFERER   = df_clean[df_clean["Click_type"]=="EQUAL_REFERER"]
-df_DYNAMIC_CHANGE  = df_clean[df_clean["Click_type"]=="DYNAMIC_CHANGE"]
-df_AJAX            = df_clean[df_clean["Click_type"]=="AJAX"]
-
-df_list = [df_TABCHANGE, df_REFRESH, df_REGULAR, df_SERVER_REDIRECT, df_EQUAL_REFERER, df_DYNAMIC_CHANGE, df_AJAX]
-
-
-
-
-
-
-
-
-
-
-
-# In[212]:
-
-df_list[0].head()
-
-
-
-# In[214]:
-
-by_date_list = [] #Group everying to daily totals
-for df_i in df_list:
-    by_date_list += [(df_i.groupby(["Date", "Click_type","Visitor_type"]).agg({'Count':'sum', 'Sample':'mean'})).reset_index()]
-
-
-
-
-# In[215]:
-
-by_date_list[0].head()
-
-
-
-
-# In[163]:
+# In[12]:
 
 def tsa_by_date(by_date_df):
     from statsmodels.tsa.seasonal import seasonal_decompose
@@ -169,48 +51,13 @@ def tsa_by_date(by_date_df):
     return_df = pd.concat([copy_a, copy_b], ignore_index=True).iloc[:,1:]
     
     return((return_df, std_a, std_b))
-  
-    #return_df = pd.merge(copy_a[["Date", "Norm_res_tot"]], copy_b[["Date", "Norm_res_uni"]], on="Date", how="left")
-    #return_df["Cutoff_tot"] = cutoff_a
-    #return_df["Cutoff_uni"] = cutoff_b
-    #return_df["Count_tot"] = copy_a["Count"]
-    #return_df["Count_uni"] = copy_b["Count"]
-    #return_df["Sample"] = copy_b["Sample"]
-    #return_df["Ratio_tot"] = copy_a["Ratio_tot"]
-    #return_df["Ratio_uni"] = copy_b["Ratio_uni"]
-    #return(return_df)
 
 
-
-
-# In[167]:
-
-date_scores_list = []
-std_tot_list = []
-std_uni_list = []
-for df_i in by_date_list:
-    temp = tsa_by_date(df_i)
-    date_scores_list += [temp[0].dropna()]
-    std_tot_list += [temp[1]]
-    std_uni_list += [temp[2]]
-
-
-
-# In[178]:
-
-my_bins = list(np.arange(0, 5.5, 0.5))
-i = 0
-for df_i in date_scores_list:
-    plt.hist(df_i["Res/std"][df_i["Visitor_type"] == "visitors-total"])
-    plt.title("Dist of Res/Std_res: " + titles[i])
-    i += 1
-    plt.show()
-
-
-
-# In[180]:
+# In[14]:
 
 def tsa_by_site(df_by_site):
+    from statsmodels.tsa.seasonal import seasonal_decompose
+    
     copy = df_by_site.copy()
     req_len = len(copy["Date"].unique())
     unique_sites = copy["Site"].unique()
@@ -251,20 +98,198 @@ def tsa_by_site(df_by_site):
     return((return_df, my_dict))
 
 
+# In[3]:
 
-# In[182]:
+path = r'C:\new_data'
 
+all_files = glob.glob(os.path.join(path, "*"))
+
+types = {"Date":'category',
+        "Site":'category',
+        "URL":'category', 
+        "Country":'category', 
+        "Platform":'category',
+        "Click_type": 'category',
+        "Type":'category',
+        "Count":'float32', 
+        "Sample":'float32'}
+
+df = pd.concat([pd.read_csv(f,
+                            sep='/',
+                            names = ["Date", "Site", "URL", "Country", "Platform", "Click_type", "Visitor_type", "Count", "Sample"],
+                            dtype = types) for f in all_files], 
+                            ignore_index=True)
+
+df.columns = ["Date", "Site", "URL", "Country", "Platform", "Click_type", "Visitor_type", "Count", "Sample"]
+df_PC = df[df.Platform == 'PC'].drop('Platform', axis=1)
+
+df_count = (df_PC.groupby(["Date", "Site", "Click_type", "Visitor_type"])["Count"].sum()).reset_index() #aggregate Country 
+
+df_sample = (df_PC.groupby(["Date", "Country"])["Sample"].mean()).reset_index() #groupby Date and Country using mean because given country and date, Sample values are same
+df_sample = (df_sample.groupby(["Date"])["Sample"].sum()).reset_index() #sum over all Country to get daily Sample
+
+df_clean = pd.merge(df_count, df_sample, on="Date", how="left")
+
+
+# In[388]:
+
+#FOLLOWING ANALYSIS AGGREGATES CLICKTYPE
+f = {'Count':'sum', 'Sample':'mean'}
+df_agg = (df_clean.groupby(["Date", "Site", "Visitor_type"]).agg(f)).reset_index()
+
+date_site_agg = a[0]
+date_site_agg_dict = a[1]
+    
+temp = pd.DataFrame.from_dict(date_site_agg_dict, orient='index')
+temp.reset_index(level=0, inplace=True)
+temp.columns = ["Site", "std_of_res_tot", "std_of_res_uni", "mean_ratio_tot", "mean_ratio_uni"]
+
+
+# In[466]:
+
+variance_cutoff = 0.2 #cutoff for normalized standard deviations (measure of size of of flucutations to volume).
+                      #0.0 means the noise is almost non-existant.
+                      #>1.0 means noise is just as large or larger than actual volume. 
+
+temp["Variance_flag"] = "Good"
+temp["Variance_flag"][temp["std_of_res_tot"]>variance_cutoff] = "High_variance"
+
+#NOTE: We use all data points, including High_variance points to create model.
+x = np.array(temp["mean_ratio_tot"])
+y = np.array(temp["std_of_res_tot"])
+
+from sklearn import linear_model   
+
+#ln transform x and y
+ln_x = np.log(x)
+ln_y = np.log(y)
+
+#linear regression on transformed variables
+m,b = np.polyfit(ln_x, ln_y, deg=1)
+
+#create model coordinates
+x_plot = np.arange(min(x), max(x), 0.0001)
+x_ln_plot = np.arange(min(ln_x), max(ln_x), 0.0001)
+
+model_y = np.exp(b) * x_plot**m
+transformed_model_y = m*x_ln_plot + b
+
+#plot to confirm transformationed data linear
+plt.scatter(ln_x, ln_y, s=2, color='steelblue')   
+plt.plot(x_ln_plot, transformed_model_y, color='orange')   
+plt.title("Total: ln(std_resid) vs ln(volume)", fontsize=16)
+plt.show()   
+
+#plot model overlaid with original data
+plt.scatter(x, y, s=2, color='steelblue')   
+plt.plot(x_plot, model_y, color='orange')
+plt.xlim(xmin=0, xmax=0.5)
+plt.ylim(ymin=0, ymax=0.5)
+plt.title("Total: std_resid vs volume", fontsize=16)
+plt.show()
+
+
+# In[468]:
+
+#We now set High_variance points to 0. Their extreme values result in very high euclidean distances between data and model.
+variance_cutoff_index = y < variance_cutoff #array of bools to indicate whether above or below variance_cutoff
+prediction = (np.exp(b) * x**m) * variance_cutoff_index
+x_1 = x * variance_cutoff_index
+y_1 = y * variance_cutoff_index
+
+y_above = (prediction > y_1)*prediction + (prediction <= y_1)*y_1
+                                                                   #If the prediction is below the fitted model, 
+                                                                   #we set the prediction_mod=y.
+                                                                   #If the prediction is above the fitted model,
+                                                                   #we set prediction_mod=prediction.
+                                                                   #Thus, when we calculate euclidean distances, 
+                                                                   #we will not have to worry about data points below the model.
+data_coord = np.array([x_1, y_above]).T
+                    
+prediction = np.array([x_1, prediction]).T 
+
+distances = cdist(data_coord, prediction_coord, 'euclidean') #Each row contains the euclidean distance between the 
+                                                             #data point and all points on fitted model.
+min_dist = distances.min(axis=1) #Minimum distance for each row
+
+#NOTE: Since most of the points lie below the model and hence were aritifically given distance=0,
+#the cutoff percentile must be set very high or else everyting above model will be flagged.
+#The correct choice of cutoff_percentile will change depending on what the choice of variance_cutoff = 0.2
+
+cutoff_percentile = 98
+cutoff = np.percentile(min_dist, cutoff_percentile) #A non-percentile approach to determining cutoff will also work.
+                                                    #If a non-percentile used, can potentially include High_variance points
+    
+#NOTE: The exclusion of High_variance points is more clear now. High_variance points correspond to high euclidean distances.
+#The abundance of High_variance points will make it very difficult to determine a suitable cutoff_percentile beacuse 
+#High_variance points will consitute the majority of the top 10% of distances.
+
+flag_coord = np.array([(min_dist > cutoff)*x_1, (min_dist > cutoff)*y_1]).T
+
+plt.figure(num=None, figsize=(6, 6), dpi=80, facecolor='w', edgecolor='k')
+plt.scatter(x_1, y_1, s=2, color='steelblue', label="good") 
+plt.scatter(flag_coord[:,0], flag_coord[:,1], s=2, color='red', label="high relative variance")
+plt.plot(x_plot, model_y, linewidth=1, color='orange', label="model")
+plt.scatter(temp["mean_ratio_tot"][temp["Variance_flag"]=="High_variance"], 
+            temp["std_of_res_tot"][temp["Variance_flag"]=="High_variance"], s=2, color='green', label="high variance")
+plt.title("Total: Flagging sites")
+plt.legend(loc='upper right')
+plt.xlim(xmin=0, xmax=0.5)
+plt.ylim(ymin=0, ymax=0.5)
+plt.show()
+
+#it's hard to see the model at x=0, but numerical inspection will show that it is very close to data
+
+
+# In[462]:
+
+temp["Relative_variance_flag"] = "Good"
+temp["Relative_variance_flag"][min_dist > cutoff] = "High_relative_variance"
+
+site_table = temp[["Site", "Variance_flag", "Relative_variance_flag"]].copy() #THIS TABLE CONTAINS CLASSIFICATION FOR ALL SITES
+
+
+# In[5]:
+
+#FOLLOWING ANALYSIS FOR EACH CLICKTYPE
+titles = ["TABCHANGE", "REFRESH", "REGULAR", "SERVER_REDIRECT", "EQUAL_REFERER", "DYNAMIC_CHANGE", "AJAX"]
+df_TABCHANGE       = df_clean[df_clean["Click_type"]=="TABCHANGE"]
+df_REFRESH         = df_clean[df_clean["Click_type"]=="REFRESH"]
+df_REGULAR         = df_clean[df_clean["Click_type"]=="REGULAR"]
+df_SERVER_REDIRECT = df_clean[df_clean["Click_type"]=="SERVER_REDIRECT"]
+df_EQUAL_REFERER   = df_clean[df_clean["Click_type"]=="EQUAL_REFERER"]
+df_DYNAMIC_CHANGE  = df_clean[df_clean["Click_type"]=="DYNAMIC_CHANGE"]
+df_AJAX            = df_clean[df_clean["Click_type"]=="AJAX"]
+
+df_list = [df_TABCHANGE, df_REFRESH, df_REGULAR, df_SERVER_REDIRECT, df_EQUAL_REFERER, df_DYNAMIC_CHANGE, df_AJAX]
+
+
+# In[6]:
+
+#Group everying to daily totals for each clicktype
+by_date_list = []
+for df_i in df_list:
+    by_date_list += [(df_i.groupby(["Date", "Click_type","Visitor_type"]).agg({'Count':'sum', 'Sample':'mean'})).reset_index()]
+    
+date_scores_list = []
+std_tot_list = []
+std_uni_list = []
+for df_i in by_date_list:
+    temp = tsa_by_date(df_i)
+    date_scores_list += [temp[0].dropna()]
+    std_tot_list += [temp[1]]
+    std_uni_list += [temp[2]]
+
+
+# In[15]:
+
+#Group by date and site for each clicktype
 site_scores_list = []
 dict_list = []
 for df_i in df_list:
     temp = tsa_by_site(df_i)
     site_scores_list += [temp[0]]
     dict_list += [temp[1]]
-    
-
-
-
-# In[188]:
 
 Site = []
 std_tot = []
@@ -280,88 +305,14 @@ for site in dict_list[0]:
     mean_tot.append(dict_list[0][site][3])
 
 
+# In[346]:
 
-
-# In[227]:
+#RAPHAEL THIS IS WHERE THE FUNCTIONING CODE STOPS, FROM HERE YOU SHOULD APPLY THE CLASSIFICATION METHOD I'VE WRITTEN SO FAR AND
+#PUT IT INTO A FOR LOOP TO RUN OVER THE LISTS OF DATA THAT HAVE BEEN SEPARATED BY CLICK_TYPE.
+#ALSO, EVEN THOUGH THERE'S DATA FOR DAILY TOTALS FOR EACH CLICKTYPE, DON'T WORRY ABOUT TT FOR NOW. JUST GET THE LOOP WORKING FOR
+#site_scores_list
 
 temp = pd.DataFrame.from_dict(dict_list[0], orient='index')
-temp.columns = ["std_of_res_tot", "std_of_res_uni", "mean_ratio_tot", "mean_ratio_uni"]
+temp.reset_index(level=0, inplace=True)
+temp.columns = ["Site", "std_of_res_tot", "std_of_res_uni", "mean_ratio_tot", "mean_ratio_uni"]
 
-
-
-
-# In[230]:
-
-temp.head(7400)
-
-
-
-
-# In[219]:
-
-plt.scatter(temp["mean_ratio_tot"], temp["std_of_res_tot"], s = 2)
-plt.ylim(ymax=5)
-plt.xlim(xmax=0.5)
-
-
-# In[ ]:
-
-
-#################################### 1220 Update ###############################
-########## Follow the dataframe "temp" that is already generated #######################
-import matplotlib.pyplot as plt    
-import numpy as np    
-from sklearn import linear_model   
-from sklearn.preprocessing import PolynomialFeatures   
-
-
-
-temp["recipro_sqrt_std_of_res_tot"] = 1/temp["std_of_res_tot"]
-temp["recipro_sqrt_std_of_res_uni"] = 1/temp["std_of_res_uni"]
-# Added two columns here, the reciprocals.
-
-plt.scatter(temp["mean_ratio_tot"], temp["recipro_std_of_res_tot"], s = 2)
-plt.ylim(ymin=0, ymax=25)                                                             
-plt.xlim(xmin=0, xmax=0.002)
-# Check the graph
-
-temp1 = temp.reset_index()
-temp1.rename(columns={'index': 'site'}, inplace=True)   # Move the index into the column "site", and reindex the df
-
-### regress_tot = df[ (temp1["mean_ratio_tot"] < 0.1) | (temp1["std_of_res_tot"] < 2) ]
-regress_tot = temp1
-#regress_tot <- This DataFrame will be used for regression
-
-
-regression_x = np.array(regress_tot["mean_ratio_tot"]).reshape([len(regress_tot["mean_ratio_tot"]), 1])  #convert to array for X
-regression_y = np.array(regress_tot["recipro_std_of_res_tot"])                       #convert to array for Y
-
-min_x = min(regression_x) 
-max_x = max(regression_x)
-plot_x = np.arange(min_x, max_x).reshape([-1, 1])     #plot_x a is used for plot the regression line later
-
-poly_reg = PolynomialFeatures(degree=2)   
-# generate polynomial, degree represent the max power (2: square), can make change to degree
-
-x_poly = poly_reg.fit_transform(regression_x)
-# apply the polynomial to independent variable x, make it ready for regression
-
-lin_reg = linear_model.LinearRegression()
-#creat the linear model
-
-lin_reg.fit(x_poly, regression_y)
-# find the most fitting polynomial regression line for y~poly(x)
-
-print('Coefficients (0, x^1, x^2, ...) :', lin_reg.coef_)
-# print out the coefficients, from lowest power x^1 to highest power x^degree_of_polynomial
-
-print(lin_reg.intercept_)  
-# print out the value of intercept
-
-plt.scatter(regression_x, regression_y, s=2)   
-plt.plot(plot_x, lin_reg.predict(poly_reg.fit_transform(X)), color='orange')   
-# plt.ylim(ymin=0, ymax=25)                                                              
-# plt.xlim(xmin=0, xmax=max_x)
-plt.show()   
-
-#Plot the graph to see the fitting result
