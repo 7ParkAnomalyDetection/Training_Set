@@ -299,11 +299,12 @@ for i in range(6):
     table[i]["Relative_variance_flag"] = "Good"
     table[i]["Relative_variance_flag"][min_dist > cutoff] = "High_relative_variance"
 
-    site_table[i] = table[i][["Site", "Variance_flag", "Relative_variance_flag"]].copy() #THIS TABLE CONTAINS CLASSIFICATION FOR ALL SITES
+    site_table[i] = table[i][["Site", "Variance_flag", "Relative_variance_flag"]].copy() 
     site_table[i]["CLick_type"] = titles[i]
+    site_table[i] = site_table[i][["Site", "CLick_type", "Variance_flag", "Relative_variance_flag"]]
     
 
-combined_site_table = DataFrame()
+combined_site_table = pd.DataFrame()
 
 #Recombine entries of all click types together
 combined_site_table = pd.DataFrame()
