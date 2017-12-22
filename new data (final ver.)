@@ -1,0 +1,317 @@
+get_ipython().magic('matplotlib inline')
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.style.use('ggplot')
+import statsmodels as sm
+from scipy.spatial.distance import cdist
+import pandas as pd
+from pandas import concat
+from datetime import datetime
+import glob
+import os as os
+import time
+import numpy as np
+from statsmodels.formula.api import ols
+import seaborn as sb
+
+path = r'C:\Users\Raphael\Desktop\Columbia\7Park_Data\Projects\Formal\datasets\new_data'
+
+all_files = glob.glob(os.path.join(path, "*"))
+
+types = {"Date":'category',             
+        "Site":'category',
+        "URL":'category', 
+        "Country":'category', 
+        "Platform":'category',
+        "Click_type": 'category',
+        "Type":'category',
+        "Count":'float32', 
+        "Sample":'float32'}
+
+
+df = pd.concat([pd.read_csv(f,
+                            sep='/',
+                            names = ["Date", "Site", "URL", "Country", "Platform", "Click_type", "Visitor_type", "Count", "Sample"],
+                            dtype = types) for f in all_files], 
+                            ignore_index=True)
+
+
+df.columns = ["Date", "Site", "URL", "Country", "Platform", "Click_type", "Visitor_type", "Count", "Sample"]
+
+
+df_PC = df[df.Platform == 'PC'].drop('Platform', axis=1)
+
+df_count = (df_PC.groupby(["Date", "Site", "Click_type", "Visitor_type"])["Count"].sum()).reset_index() #aggregate Country 
+
+df_sample = (df_PC.groupby(["Date", "Country"])["Sample"].mean()).reset_index() #groupby Date and Country using mean because given country and date, Sample values are same
+df_sample = (df_sample.groupby(["Date"])["Sample"].sum()).reset_index() #sum over all Country to get daily Sample
+
+df_clean = pd.merge(df_count, df_sample, on="Date", how="left") 
+
+df_clean.head(5)
+df_count.head(5)
+df_sample.head(5)
+
+titles = ["TABCHANGE", "REFRESH", "REGULAR", "SERVER_REDIRECT", "EQUAL_REFERER", "DYNAMIC_CHANGE", "AJAX"]
+df_TABCHANGE       = df_clean[df_clean["Click_type"]=="TABCHANGE"]
+df_REFRESH         = df_clean[df_clean["Click_type"]=="REFRESH"]
+df_REGULAR         = df_clean[df_clean["Click_type"]=="REGULAR"]
+df_SERVER_REDIRECT = df_clean[df_clean["Click_type"]=="SERVER_REDIRECT"]
+df_EQUAL_REFERER   = df_clean[df_clean["Click_type"]=="EQUAL_REFERER"]
+df_DYNAMIC_CHANGE  = df_clean[df_clean["Click_type"]=="DYNAMIC_CHANGE"]
+df_AJAX            = df_clean[df_clean["Click_type"]=="AJAX"]
+
+df_list = [df_TABCHANGE, df_REFRESH, df_REGULAR, df_SERVER_REDIRECT, df_EQUAL_REFERER, df_DYNAMIC_CHANGE, df_AJAX]
+
+by_date_list = [] #Group everying to daily totals
+for df_i in df_list:
+    by_date_list += [(df_i.groupby(["Date", "Click_type","Visitor_type"]).agg({'Count':'sum', 'Sample':'mean'})).reset_index()]
+    
+def tsa_by_date(by_date_df):
+    from statsmodels.tsa.seasonal import seasonal_decompose
+
+    copy = by_date_df.copy()
+
+    copy_a = copy[copy["Visitor_type"]=="visitors-total"].reset_index()
+    copy_b = copy[copy["Visitor_type"]=="visitors-unique"].reset_index()
+
+    copy_a["Ratio"] = copy_a["Count"]/copy_a["Sample"]
+    copy_b["Ratio"] = copy_b["Count"]/copy_b["Sample"]
+
+    a = np.array(copy_a["Ratio"])
+    b = np.array(copy_b["Ratio"])
+
+    model_a = seasonal_decompose(a, model="additive", filt=None, freq=7, two_sided=False)
+    model_b = seasonal_decompose(b, model="additive", filt=None, freq=7, two_sided=False)
+
+    copy_a["Norm_res"] = np.absolute(model_a.resid/a) #normalize: divide residual_i by model value at i
+    copy_b["Norm_res"] = np.absolute(model_b.resid/b)
+
+    std_a = copy_a["Norm_res"].std() #used to plot, std vs volume
+    std_b = copy_b["Norm_res"].std()
+    
+    copy_a["Res/std"] = copy_a["Norm_res"]/std_a #these are scores for each site
+    copy_b["Res/std"] = copy_b["Norm_res"]/std_b
+    
+    return_df = pd.concat([copy_a, copy_b], ignore_index=True).iloc[:,1:]
+    
+    return((return_df, std_a, std_b))
+  
+  
+  
+date_scores_list = []
+std_tot_list = []
+std_uni_list = []
+for df_i in by_date_list:
+    temp = tsa_by_date(df_i)
+    date_scores_list += [temp[0].dropna()]
+    std_tot_list += [temp[1]]
+    std_uni_list += [temp[2]]
+    
+    
+std_tot_list
+
+
+my_bins = list(np.arange(0, 5.5, 0.5))
+i = 0
+for df_i in date_scores_list:
+    plt.hist(df_i["Res/std"][df_i["Visitor_type"] == "visitors-total"])
+    plt.title("Dist of Res/Std_res: " + titles[i])
+    i += 1
+    plt.show()
+    
+    
+def tsa_by_site(df_by_site):
+    from statsmodels.tsa.seasonal import seasonal_decompose
+    copy = df_by_site.copy()
+    req_len = len(copy["Date"].unique())
+    unique_sites = copy["Site"].unique()
+    frames = []
+    my_dict = {} #stores std of residuals for tot and uni, key is domain name
+
+    for site in unique_sites:
+        copy_subset = copy[copy["Site"] == site]
+        if len(copy_subset) < req_len:
+            continue
+
+        copy_subset_a = copy_subset[copy_subset["Visitor_type"]=="visitors-total"].reset_index()
+        copy_subset_b = copy_subset[copy_subset["Visitor_type"]=="visitors-unique"].reset_index()
+
+        copy_subset_a["Ratio"] = copy_subset_a["Count"]/copy_subset_a["Sample"]
+        copy_subset_b["Ratio"] = copy_subset_b["Count"]/copy_subset_b["Sample"]
+
+        a = np.array(copy_subset_a["Ratio"])
+        b = np.array(copy_subset_b["Ratio"])
+
+        model_a = seasonal_decompose(a, model="additive", filt=None, freq=7, two_sided=False)
+        model_b = seasonal_decompose(b, model="additive", filt=None, freq=7, two_sided=False)
+
+        copy_subset_a["Norm_res"] = np.absolute(model_a.resid/a)
+        copy_subset_b["Norm_res"] = np.absolute(model_b.resid/b)
+        
+        std_a = copy_subset_a["Norm_res"].std()
+        std_b = copy_subset_b["Norm_res"].std()
+        
+        copy_subset_a["Res/std"] = copy_subset_a["Norm_res"]/std_a
+        copy_subset_b["Res/std"] = copy_subset_b["Norm_res"]/std_b
+        
+
+        frames += [pd.concat([copy_subset_a, copy_subset_b], ignore_index=True).iloc[:,1:]]
+        my_dict[site] = (std_a, std_b, np.nanmean(a), np.nanmean(b))
+
+    return_df = pd.concat(frames)
+    return((return_df, my_dict))
+
+
+site_scores_list = []
+dict_list = []
+for df_i in df_list:
+    temp = tsa_by_site(df_i)
+    site_scores_list += [temp[0]]
+    dict_list += [temp[1]]
+
+
+Site = []
+std_tot = []
+mean_tot = []
+std_uni = []
+mean_uni = []
+
+
+for i in range(6):
+    for site in dict_list[i]:
+        Site.append(site)
+        std_tot.append(dict_list[i][site][0])
+        std_uni.append(dict_list[i][site][1])
+        mean_tot.append(dict_list[i][site][2])
+        mean_tot.append(dict_list[i][site][3])
+ 
+ 
+ 
+table = [pd.DataFrame()] * 7
+site_table = [pd.DataFrame()] * 7
+
+for i in range(7):
+    table[i] = pd.DataFrame.from_dict(dict_list[i], orient='index')
+    table[i] = table[i].reset_index()
+    table[i].columns = ["Site","std_of_res_tot", "std_of_res_uni", "mean_ratio_tot", "mean_ratio_uni"]
+    
+
+variance_cutoff = 0.2 
+
+
+
+
+for i in range(6):
+    
+    table[i]["Variance_flag"] = "Good"
+    table[i]["Variance_flag"][table[i]["std_of_res_tot"]>variance_cutoff] = "High_variance"
+
+    #NOTE: We use all data points, including High_variance points to create model.
+    x = np.array(table[i]["mean_ratio_tot"])
+    y = np.array(table[i]["std_of_res_tot"])
+
+    from sklearn import linear_model   
+
+    #ln transform x and y
+    ln_x = np.log(x)
+    ln_y = np.log(y)
+
+    #linear regression on transformed variables
+    m,b = np.polyfit(ln_x, ln_y, deg=1)
+
+    #create model coordinates
+    x_plot = np.arange(min(x), max(x), 0.0001)
+    x_ln_plot = np.arange(min(ln_x), max(ln_x), 0.0001)
+
+    model_y = np.exp(b) * x_plot**m
+    transformed_model_y = m*x_ln_plot + b
+
+    #plot to confirm transformationed data linear
+    plt.scatter(ln_x, ln_y, s=2, color='steelblue')   
+    plt.plot(x_ln_plot, transformed_model_y, color='orange')   
+    plt.title("Total: ln(std_resid) vs ln(volume)   (" + titles[i] + ")", fontsize=16)
+    plt.show()   
+
+    #plot model overlaid with original data
+    plt.scatter(x, y, s=2, color='steelblue')   
+    plt.plot(x_plot, model_y, color='orange')
+    plt.xlim(xmin=0, xmax=0.3)
+    plt.ylim(ymin=0, ymax=0.5)
+    plt.title("Total: std_resid vs volume   (" + titles[i] + ")", fontsize=16)
+    plt.show()
+
+
+    # In[468]:
+
+    #We now set High_variance points to 0. Their extreme values result in very high euclidean distances between data and model.
+    variance_cutoff_index = y < variance_cutoff #array of bools to indicate whether above or below variance_cutoff
+    prediction = (np.exp(b) * x**m) * variance_cutoff_index
+    x_1 = x * variance_cutoff_index
+    y_1 = y * variance_cutoff_index
+
+    y_above = (prediction > y_1)*prediction + (prediction <= y_1)*y_1
+                                                                       #If the prediction is below the fitted model, 
+                                                                       #we set the prediction_mod=y.
+                                                                       #If the prediction is above the fitted model,
+                                                                       #we set prediction_mod=prediction.
+                                                                       #Thus, when we calculate euclidean distances, 
+                                                                       #we will not have to worry about data points below the model.
+    data_coord = np.array([x_1, y_above]).T
+
+    prediction_coord = np.array([x_1, prediction]).T 
+
+    distances = cdist(data_coord, prediction_coord, 'euclidean') #Each row contains the euclidean distance between the 
+                                                                 #data point and all points on fitted model.
+    min_dist = distances.min(axis=1) #Minimum distance for each row
+
+    #NOTE: Since most of the points lie below the model and hence were aritifically given distance=0,
+    #the cutoff percentile must be set very high or else everyting above model will be flagged.
+    #The correct choice of cutoff_percentile will change depending on what the choice of variance_cutoff = 0.2
+
+    cutoff_percentile = 98
+    cutoff = np.percentile(min_dist, cutoff_percentile) #A non-percentile approach to determining cutoff will also work.
+                                                        #If a non-percentile used, can potentially include High_variance points
+
+    #NOTE: The exclusion of High_variance points is more clear now. High_variance points correspond to high euclidean distances.
+    #The abundance of High_variance points will make it very difficult to determine a suitable cutoff_percentile beacuse 
+    #High_variance points will consitute the majority of the top 10% of distances.
+
+    flag_coord = np.array([(min_dist > cutoff)*x_1, (min_dist > cutoff)*y_1]).T
+
+    plt.figure(num=None, figsize=(6, 6), dpi=80, facecolor='w', edgecolor='k')
+    plt.scatter(x_1, y_1, s=2, color='steelblue', label="good") 
+    plt.scatter(flag_coord[:,0], flag_coord[:,1], s=2, color='red', label="high relative variance")
+    plt.plot(x_plot, model_y, linewidth=1, color='orange', label="model")
+    plt.scatter(table[i]["mean_ratio_tot"][table[i]["Variance_flag"]=="High_variance"], 
+                table[i]["std_of_res_tot"][table[i]["Variance_flag"]=="High_variance"], s=2, color='green', label="high variance")
+    plt.title("Total: Flagging sites   (" + titles[i] + ")")
+    plt.legend(loc='upper right')
+    plt.xlim(xmin=0, xmax=0.3)
+    plt.ylim(ymin=0, ymax=0.5)
+    plt.show()
+
+    #it's hard to see the model at x=0, but numerical inspection will show that it is very close to data
+
+
+    # In[462]:
+
+    table[i]["Relative_variance_flag"] = "Good"
+    table[i]["Relative_variance_flag"][min_dist > cutoff] = "High_relative_variance"
+
+    site_table[i] = table[i][["Site", "Variance_flag", "Relative_variance_flag"]].copy() #THIS TABLE CONTAINS CLASSIFICATION FOR ALL SITES
+    site_table[i]["CLick_type"] = titles[i]
+    
+
+combined_site_table = DataFrame()
+
+combined_site_table = pd.DataFrame()
+for i in range(7):
+    combined_site_table = concat([combined_site_table, site_table[i]], axis=0 )
+    combined_site_table.to_csv(r'C:\Users\Raphael\Desktop\Columbia\7Park_Data\Projects\Formal\datasets\combined_site_table.csv')
+
+#Filter out anomaly entries
+abnormal_site_table = combined_site_table[(combined_site_table['Variance_flag']=='High_variance') | (combined_site_table['Relative_variance_flag']=='High_relative_variance')]
+
+#Save file
+abnormal_site_table.to_csv(r'C:\Users\Raphael\Desktop\Columbia\7Park_Data\Projects\Formal\datasets\abnormal_site_table.csv')
