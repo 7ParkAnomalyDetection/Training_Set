@@ -20,6 +20,35 @@ from statsmodels.formula.api import ols
 import seaborn as sb
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # In[12]:
 
 #Function for performing time series analysis for Date aggregated data. That is to say the data frame should have only
@@ -62,6 +91,29 @@ def tsa_by_date(by_date_df):
     return_df = pd.concat([copy_a, copy_b], ignore_index=True).iloc[:,1:]
     
     return(return_df)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # In[14]:
@@ -114,6 +166,21 @@ def tsa_by_site(df_by_site):
     #Stack all dataframes in frames
     return_df = pd.concat(frames)
     return((return_df, my_dict))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # In[3]:
@@ -177,6 +244,11 @@ temp["Variance_flag"][temp["std_of_res_tot"]>variance_cutoff] = "High_variance"
 #NOTE: We use all data points, including High_variance points to create model.
 x = np.array(temp["mean_ratio_tot"])
 y = np.array(temp["std_of_res_tot"])
+
+
+
+
+
 
 from sklearn import linear_model   
 
@@ -306,6 +378,12 @@ for df_i in df_list:
     dict_list += [temp[1]]
 
 
+
+
+
+
+
+
 # In[495]:
 
 n = len(df_list)
@@ -371,7 +449,9 @@ for i in range(n):
                                                                  #data point and all points on fitted model.
     min_dist = distances.min(axis=1) #Minimum distance for each row
 
-    #SET cutoff_percentile
+   
+   
+   #SET cutoff_percentile
     cutoff_percentile = 98
     cutoff = np.percentile(min_dist, cutoff_percentile) #A non-percentile approach to determining cutoff will also work.
                                                         #If a non-percentile used, can potentially include High_variance points
