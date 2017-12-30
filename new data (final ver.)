@@ -206,7 +206,7 @@ df = pd.concat([pd.read_csv(f,
                             ignore_index=True)
 
 df.columns = ["Date", "Site", "URL", "Country", "Platform", "Click_type", "Visitor_type", "Count", "Sample"]
-df_PC = df[df.Platform == 'PC'].drop('Platform', axis=1)
+df_PC = df[df.Phttps://github.com/7ParkAnomalyDetection/Training_Set/blob/master/new%20data%20(final%20ver.)latform == 'PC'].drop('Platform', axis=1)
 
 df_count = (df_PC.groupby(["Date", "Site", "Click_type", "Visitor_type"])["Count"].sum()).reset_index() #aggregate Country 
 
