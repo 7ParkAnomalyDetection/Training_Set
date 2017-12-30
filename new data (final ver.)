@@ -210,9 +210,9 @@ df_PC = df[df.Platform == 'PC'].drop('Platform', axis=1)
 
 df_count = (df_PC.groupby(["Date", "Site", "Click_type", "Visitor_type"])["Count"].sum()).reset_index() #aggregate Country 
 
-df_sample = (df_PC.groupby(["Date", "Country"])["Sample"].mean()).reset_index() #groupby Date and Country using mean because 
+df_sample_raw = (df_PC.groupby(["Date", "Country"])["Sample"].mean()).reset_index() #groupby Date and Country using mean because 
                                                                                 #given country and date, Sample values are same
-df_sample = (df_sample.groupby(["Date"])["Sample"].sum()).reset_index() #sum over all Country to get total daily Sample
+df_sample = (df_sample_raw.groupby(["Date"])["Sample"].sum()).reset_index() #sum over all Country to get total daily Sample
 
 df_clean = pd.merge(df_count, df_sample, on="Date", how="left") #cleaned data from which we will further subset
 
