@@ -299,7 +299,7 @@ y_above = (prediction > y_1)*prediction + (prediction <= y_1)*y_1
                                                                    #If the prediction is below the fitted model, 
                                                                    #we set the prediction_mod=y.
                                                                    #If the prediction is above the fitted model,
-                                                                   #we set prediction_mod=prediction.
+                                                                   #we set the prediction_mod=prediction.
                                                                    #Thus, when we calculate euclidean distances, 
                                                                    #we will not have to worry about data points below the model.
 data_coord = np.array([x_1, y_above]).T
